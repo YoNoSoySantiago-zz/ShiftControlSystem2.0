@@ -1,7 +1,11 @@
 package model;
 
-public class Shift {
+import java.time.LocalDate;
+import java.time.LocalTime;
+
+public class Shift extends CurrentTime{
 	//ATRUBUTES
+	private Type type;
 	private char letter;
 	private int number;
 	private String shift;
@@ -9,7 +13,9 @@ public class Shift {
 	private boolean active;
 	
 	//CONSTRUCTOR
-	public Shift(char letter,int number, String shift,boolean attended,boolean active) {
+	public Shift(LocalDate date,LocalTime time,Type type,char letter,int number, String shift,boolean attended,boolean active) {
+		super(date,time);
+		this.setType(type);
 		this.letter = letter;
 		this.number = number;
 		this.shift = shift;
@@ -47,5 +53,13 @@ public class Shift {
 	}
 	public void setActive(boolean active) {
 		this.active = active;
+	}
+
+	public Type getType() {
+		return type;
+	}
+
+	public void setType(Type type) {
+		this.type = type;
 	}
 }

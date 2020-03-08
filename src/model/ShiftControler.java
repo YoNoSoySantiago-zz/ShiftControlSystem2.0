@@ -1,6 +1,7 @@
 package model;
 import exceptions.*;
 
+import java.time.*;
 import java.util.ArrayList;
 
 public class ShiftControler {
@@ -8,6 +9,7 @@ public class ShiftControler {
 	private ArrayList<User> users;
 	private ArrayList<User> userShift;
 	private Shift shift;
+	private CurrentTime time;
 	
 	public ArrayList<User> getUserShift() {
 		return userShift;
@@ -16,7 +18,7 @@ public class ShiftControler {
 	public ShiftControler() {
 		users = new ArrayList<User>();
 		userShift = new ArrayList<User>();
-		shift = new Shift('A',0,"A00",false,true);
+		shift = new Shift(null,null,null,'A',0,"A00",false,true);
 	}
 	
 	//METHODS
@@ -87,12 +89,22 @@ public class ShiftControler {
 	 * the method will take the last assigned turn and increase it by one, to return the result
 	 * @return this method returns an instance of the Shift class, this represent to the next of the list
 	 */
-	public Shift generateNextShift() {
-		Shift shift = new Shift('A',0,"A00",false,true);
+	public Shift generateNextShift(Type type) {
+		Shift shift = new Shift(time.getNowDate(),time.getNowTime(),type,'A',0,"A00",false,true);
 		if(userShift.size()>0) {
-			char letter =userShift.get(userShift.size()-1).getShift().getLetter();
-			int number = userShift.get(userShift.size()-1).getShift().getNumber();
-			String shift1= userShift.get(userShift.size()-1).getShift().getShift();
+			User userLast = userShift.get(userShift.size()-1);
+			char letter =userLast.getShift().getLetter();
+			int number = userLast.getShift().getNumber();
+			String shift1= userLast.getShift().getShift();
+			LocalDate date;
+			LocalTime timer;
+			if(userLast.getShift().getShiftDate().compareTo(time.getNowDate())>=0) {
+				if(userLast.getShift().getShiftDate().compareTo(time.getNowDate())==0) {
+					if(userLast.getShift().getShiftTime().compareTo(time.getNowTime())>=0){
+						
+					}
+				}
+			}
 			shift = new Shift(letter,number,shift1,false,true);
 			shift.setNumber(shift.getNumber()+1);
 			if(shift.getNumber()>99) {
