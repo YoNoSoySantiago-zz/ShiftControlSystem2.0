@@ -1,38 +1,23 @@
 package model;
 import java.time.*;
 public class CurrentTime {
-	private LocalTime nowTime = LocalTime.now();
-	private LocalDate nowDate = LocalDate.now();
-	private LocalTime shiftTime;
-	private LocalDate shiftDate;
+	private LocalDateTime nowTime = LocalDateTime.now();
+	private LocalDateTime shiftTime;
 	
-	public CurrentTime(LocalDate date,LocalTime time) {
-		shiftDate = date;
-		shiftTime = time;
+	public CurrentTime(LocalDateTime time) {
+		setShiftTime(time);
 	}
 
-	public void setShiftTime(LocalTime shiftTime) {
-		this.shiftTime = shiftTime;
-	}
-
-	public void setShiftDate(LocalDate shiftDate) {
-		this.shiftDate = shiftDate;
-	}
-
-	public LocalTime getNowTime() {
-		return nowTime;
-	}
-
-	public LocalDate getNowDate() {
-		return nowDate;
-	}
-
-	public LocalTime getShiftTime() {
+	public LocalDateTime getShiftTime() {
 		return shiftTime;
 	}
 
-	public LocalDate getShiftDate() {
-		return shiftDate;
+	public void setShiftTime(LocalDateTime shiftTime) {
+		this.shiftTime = shiftTime;
+	}
+
+	public LocalDateTime getNowTime() {
+		return nowTime;
 	}
 	
 }

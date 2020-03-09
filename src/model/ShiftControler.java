@@ -8,6 +8,7 @@ public class ShiftControler {
 	//ATRIBUTES
 	private ArrayList<User> users;
 	private ArrayList<User> userShift;
+	private ArrayList<Type> type;
 	private Shift shift;
 	private CurrentTime time;
 	
@@ -18,7 +19,7 @@ public class ShiftControler {
 	public ShiftControler() {
 		users = new ArrayList<User>();
 		userShift = new ArrayList<User>();
-		shift = new Shift(null,null,null,'A',0,"A00",false,true);
+		shift = new Shift(time.getNowTime(),null,'A',0,"A00",false,true);
 	}
 	
 	//METHODS
@@ -57,7 +58,7 @@ public class ShiftControler {
 	 * 
 	 * @throws UserAlreadyHasShiftException this exception will be thrown when the user to assign a shift already have a shift assigned over the current shift
 	 */
-	public void assignShift(String documentNumber,String documentType) throws UserAlreadyHasShiftException {
+	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException {
 		
 		for(int j =0;j<userShift.size();j++) {
 			int letterUser = (int)userShift.get(j).getShift().getLetter();
@@ -73,15 +74,25 @@ public class ShiftControler {
 							
 			}
 		}
-		for(int i = 0;i<users.size();i++) {
-			if(users.get(i).getDocumentNumber().equals(documentNumber)&&users.get(i).getDocumentType().equals(documentType)) {
-				User user = users.get(i);
-				user.setShift(generateNextShift());
-				userShift.add(user);
-				
+		Type shiftType=null;
+		for (int i = 0; i < this.type.size(); i++) {
+			if(this.type.get(i).getName().equals(type)) {
+				shiftType=this.type.get(i);
 				break;
 			}
-		}	
+		}
+		if(shiftType!=null) {
+			for(int i = 0;i<users.size();i++) {
+				if(users.get(i).getDocumentNumber().equals(documentNumber)&&users.get(i).getDocumentType().equals(documentType)) {
+					User user = users.get(i);
+					user.setShift(generateNextShift(shiftType));
+					userShift.add(user);
+					
+					break;
+				}
+			}	
+		}//HACER UNA EXCEPTION
+		
 	}
 	//This method is to generate the next Shift in the list
 	/**
@@ -90,22 +101,17 @@ public class ShiftControler {
 	 * @return this method returns an instance of the Shift class, this represent to the next of the list
 	 */
 	public Shift generateNextShift(Type type) {
-		Shift shift = new Shift(time.getNowDate(),time.getNowTime(),type,'A',0,"A00",false,true);
+		Shift shift = new Shift(time.getNowTime(),type,'A',0,"A00",false,true);
 		if(userShift.size()>0) {
 			User userLast = userShift.get(userShift.size()-1);
 			char letter =userLast.getShift().getLetter();
 			int number = userLast.getShift().getNumber();
 			String shift1= userLast.getShift().getShift();
-			LocalDate date;
-			LocalTime timer;
-			if(userLast.getShift().getShiftDate().compareTo(time.getNowDate())>=0) {
-				if(userLast.getShift().getShiftDate().compareTo(time.getNowDate())==0) {
-					if(userLast.getShift().getShiftTime().compareTo(time.getNowTime())>=0){
-						
-					}
-				}
+			LocalDateTime timer = time.getNowTime();
+			if(userLast.getShift().getShiftTime().compareTo(time.getNowTime())>0) {
+				timer = userLast.getShift().getShiftTime().plusSeconds(15);
 			}
-			shift = new Shift(letter,number,shift1,false,true);
+			shift = new Shift(timer,type,letter,number,shift1,false,true);
 			shift.setNumber(shift.getNumber()+1);
 			if(shift.getNumber()>99) {
 				if(shift.getLetter()=='Z') {
@@ -125,6 +131,7 @@ public class ShiftControler {
 		}
 		
 	}
+	
 	/**
 	 * This method allow to create a new User and to add in the list of Users, 
 	 * only can be add if the id and type of the user does'nt exist otherwise it will throw an exception
@@ -156,7 +163,7 @@ public class ShiftControler {
 		if(numberPhone.isEmpty()) {
 			numberPhone = User.UNKNOWN;
 		}
-		users.add(new User(name,lastName,documentType,documentNumber,locate,numberPhone,new Shift('A',0,"---",false,true)));
+		users.add(new User(name,lastName,documentType,documentNumber,locate,numberPhone,new Shift(null,null,'A',0,"---",false,true)));
 	}
 	/**
 	 * This method allow to advance a shift of the current shift, only can advance if the next shift already has been assigned
@@ -208,8 +215,8 @@ public class ShiftControler {
 	public ArrayList<User> getUserList(){
 		return users;
 	}
-	public void setShift(char letter,int number,String shift) {
-		this.shift=(new Shift(letter,number,shift,false,true)); 
+	public void setShift(LocalDateTime timer,Type type,char letter,int number,String shift) {
+		this.shift=(new Shift(timer,type,letter,number,shift,false,true)); 
 	}
 	
 	
