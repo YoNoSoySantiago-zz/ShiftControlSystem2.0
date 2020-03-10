@@ -1,6 +1,7 @@
 package model;
 import exceptions.*;
 
+import java.io.*;
 import java.time.*;
 import java.util.ArrayList;
 
@@ -35,6 +36,7 @@ public class ShiftControler {
 	 */
 	public String searchUser(String documentNumber,String documentType) throws UserNoExistException {
 		String result="";
+		//Sequential Search
 		for(int i = 0;i<users.size();i++) {
 			if(users.get(i).getDocumentType().equals(documentType) && users.get(i).getDocumentNumber().equals(documentNumber)) {
 				result = users.get(i).toString();
@@ -57,8 +59,9 @@ public class ShiftControler {
 	 * this parameter only can have the following options: citizenship card, civil registration,passport,foreign identity card
 	 * 
 	 * @throws UserAlreadyHasShiftException this exception will be thrown when the user to assign a shift already have a shift assigned over the current shift
+	 * @throws ShiftTypeNotExist 
 	 */
-	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException {
+	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException, ShiftTypeNotExist {
 		
 		for(int j =0;j<userShift.size();j++) {
 			int letterUser = (int)userShift.get(j).getShift().getLetter();
@@ -91,7 +94,7 @@ public class ShiftControler {
 					break;
 				}
 			}	
-		}//HACER UNA EXCEPTION
+		}else throw new ShiftTypeNotExist();
 		
 	}
 	//This method is to generate the next Shift in the list
@@ -110,6 +113,8 @@ public class ShiftControler {
 			LocalDateTime timer = time.getNowTime();
 			if(userLast.getShift().getShiftTime().compareTo(time.getNowTime())>0) {
 				timer = userLast.getShift().getShiftTime().plusSeconds(15);
+				long seconds = (long) (type.getDuration()*60);
+				timer = timer.plusSeconds(seconds);
 			}
 			shift = new Shift(timer,type,letter,number,shift1,false,true);
 			shift.setNumber(shift.getNumber()+1);
@@ -171,42 +176,121 @@ public class ShiftControler {
 	 * @param attended this parameter is a boolean and represent if the user was attended or was absent.
 	 * @throws NoMoreShiftException  this exception will be throw when don't exist more shift to continue
 	 */
-	public void advanceShift(boolean attended) throws NoMoreShiftException {	
+	public void advanceShift() throws NoMoreShiftException {	
 		if(userShift.size()>0) {
-			int letterUser = (int)userShift.get(userShift.size()-1).getShift().getLetter();
-			int letterShift = (int)shift.getLetter();
+			
 			if(userShift.get(userShift.size()-1).getShift().isActive()==false) {
 				throw new NoMoreShiftException();
 			}
-			if(letterShift>= letterUser && userShift.get(userShift.size()-1).getShift().isActive()==false) {
-				if(letterShift== letterUser) {
-					if(shift.getNumber()==userShift.get(userShift.size()-1).getShift().getNumber()) {
-						throw new NoMoreShiftException();
-					}
-				}else {
-					throw new NoMoreShiftException();
-				}
-				
-			}
 			for(int i =0;i<userShift.size();i++) {
-				letterUser = (int)userShift.get(i).getShift().getLetter();
-				if(shift.getNumber()==userShift.get(i).getShift().getNumber()&&letterUser == letterShift && userShift.get(i).getShift().isActive()==true) {
-					userShift.get(i).getShift().setAttended(attended);
+				if(userShift.get(i).getShift().getShiftTime().compareTo(time.getNowTime())<0) {
 					userShift.get(i).getShift().setActive(false);
+					shift.setNumber(userShift.get(i).getShift().getNumber());
+					shift.setLetter(userShift.get(i).getShift().getLetter());
+				}else {
+					break;
 				}
 			}
 			
 		}else {
 			throw new NoMoreShiftException();
 		}	
-		shift.setNumber(shift.getNumber()+1);
-		if(shift.getNumber()>99) {
-			shift.setNumber(0);
-			shift.setLetter((char) (shift.getLetter()+1));
+	}
+	public void showSystemTime(){
+		long year = time.getNowTime().getYear()+time.getAdelanted()[0];
+		long month =time.getNowTime().getMonthValue()+time.getAdelanted()[1];
+		long day = time.getNowTime().getDayOfMonth()+time.getAdelanted()[2];
+		long hour = time.getNowTime().getHour()+time.getAdelanted()[3];
+		long minute = time.getNowTime().getMinute()+time.getAdelanted()[4];
+		long second = time.getNowTime().getSecond()+time.getAdelanted()[5];
+		System.out.println(year+"/"+month+"/"+day+"/"+hour+"/"+minute+"/"+second);
+	}
+	@SuppressWarnings("static-access")
+	public void changeTime(int year,int month,int day,int hour,int minute,int second) throws TimeDateNoValid {
+		LocalDate date = null;
+		date.of(year,month,day);
+		LocalTime time = null;
+		time.of(hour,minute,second);
+		LocalDateTime local = null;
+		local.of(date,time);
+		if(this.time.getNowTime().compareTo(local)<=0) {
+			int[] result = new int[]{year,month,day,hour,minute,second};
+			this.time.setAdelanted(result);
+		}else {
+			throw new TimeDateNoValid();
 		}
-		if(shift.getNumber()<10) {
-			shift.setShift((char)(shift.getLetter())+ "0"+Integer.toString(shift.getNumber()).toUpperCase()); 
+	
+	}
+	public void changeTime() {
+		int[] result = new int[6];
+		time.setAdelanted(result);
+	}
+	
+	///PRE_ Duration is bigger than 0
+	public void addTypeShift(String name,double duration) throws NameShiftTypeAlreadyExist {
+		Type type = new Type(name,duration);
+		for (int i = 0; i < this.type.size(); i++) {
+			if(this.type.get(i).getName().equals(name)) {
+				throw new NameShiftTypeAlreadyExist();
+			}
 		}
+		this.type.add(type);
+	}
+	public void generateReportUserShift(String documentType,String documentNumber,boolean print) throws IOException, UserNoExistException {
+		searchUser(documentNumber,documentType);
+		boolean aux = false;
+		File file = new File("data/"+documentNumber);
+		PrintWriter pr = new PrintWriter(file);
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		for (int i = 0; i < userShift.size(); i++) {
+			if(userShift.get(i).getDocumentNumber().equals(documentNumber)&&userShift.get(i).getDocumentType().equals(documentType)) {
+				aux = true;
+				pr.print(userShift.get(i).getShift().getShift()+" ");
+				if(userShift.get(i).getShift().isActive()==true) {
+					pr.print("Already has been attended: "+" YES");
+				}else {
+					pr.print("Already has been attended: "+" NO");
+				}
+				if(userShift.get(i).getShift().isAttended()==true) {
+					pr.println("is into the room?: "+" YES");
+				}else {
+					pr.println("is into the room?: "+" NO");
+				}
+				if(print ==true) {
+					pr.flush();
+					System.out.println(br.readLine());
+				}
+				
+				
+			}
+		}
+		if(aux ==false) {
+			System.out.println("This user has not had a shift yet");
+		}
+		br.close();
+		pr.close();
+	}
+	public void generateReportShiftUsers(String code,boolean print) throws IOException {
+		File file = new File("data/ShiftUsers");
+		boolean aux = false;
+		PrintWriter pr = new PrintWriter(file);
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		for (int i = 0; i < userShift.size(); i++) {
+			if(userShift.get(i).getShift().getShift().equals(code)) {
+				aux =true;
+				pr.print(userShift.get(i).getName()+" ");
+				pr.println("Document: "+userShift.get(i).getDocumentType()+" "+userShift.get(i).getDocumentNumber());
+				if(print ==true) {
+					pr.flush();
+					System.out.println(br.readLine());
+				}
+			}
+		}
+		if(aux ==false) {
+			System.out.println("No one peaple has get this shift");
+		}
+		pr.close();
+		br.close();
 	}
 	public String getShift() {
 		return shift.getShift();

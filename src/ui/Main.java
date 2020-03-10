@@ -139,7 +139,7 @@ public class Main {
 					System.out.println("this option is not correct so it will become a not automatically");
 					attended = false;
 				}
-				shiftControler.advanceShift(attended);
+				shiftControler.advanceShift();
 				System.out.println("attended correctly");
 				
 				
