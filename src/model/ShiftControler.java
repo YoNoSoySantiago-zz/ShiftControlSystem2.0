@@ -4,6 +4,9 @@ import exceptions.*;
 import java.io.*;
 import java.time.*;
 import java.util.ArrayList;
+import java.util.Random;
+
+import com.sun.istack.internal.FragmentContentHandler;
 
 public class ShiftControler {
 	//ATRIBUTES
@@ -291,6 +294,33 @@ public class ShiftControler {
 		}
 		pr.close();
 		br.close();
+	}
+	//String documentNumber,String documentType,String type
+	public	void generateRamdonShift(int[] cant) throws UserAlreadyHasShiftException, ShiftTypeNotExist {
+		if(type.size()>0) {
+			for (int i = 0; i < cant.length; i++) {
+				Random rnd = new Random();
+				Random rndT = new Random();
+				for (int j = 0; j < cant[i]&&j<users.size(); j++) {
+					int k = rnd.nextInt()*(users.size()-1)+0;
+					int t = rndT.nextInt()*type.size()-1;
+					String documentNumber = users.get(k).getDocumentNumber();
+					String documentType = users.get(k).getDocumentType();
+					String typeNmae = type.get(t).getName();
+					assignShift(documentNumber,documentType,typeNmae);
+					LocalDateTime plus = userShift.get(userShift.size()-1).getShift().getShiftTime();
+					userShift.get(userShift.size()-1).getShift().setShiftTime(plus.plusDays(i));
+					
+					
+				}
+			}
+		}else System.out.println("Please create first the types of shifts");
+		
+	}
+	public void generateRamdonUsers(int n) {
+		for (int i = 0; i < n; i++) {
+			
+		}
 	}
 	public String getShift() {
 		return shift.getShift();
