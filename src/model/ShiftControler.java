@@ -6,8 +6,6 @@ import java.time.*;
 import java.util.ArrayList;
 import java.util.Random;
 
-import com.sun.istack.internal.FragmentContentHandler;
-
 public class ShiftControler {
 	//ATRIBUTES
 	private ArrayList<User> users;
@@ -114,8 +112,8 @@ public class ShiftControler {
 			int number = userLast.getShift().getNumber();
 			String shift1= userLast.getShift().getShift();
 			LocalDateTime timer = time.getNowTime();
-			if(userLast.getShift().getShiftTime().compareTo(time.getNowTime())>0) {
-				timer = userLast.getShift().getShiftTime().plusSeconds(15);
+			if(userLast.getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())>0) {
+				timer = userLast.getShift().getCurrent().getShiftTime().plusSeconds(15);
 				long seconds = (long) (type.getDuration()*60);
 				timer = timer.plusSeconds(seconds);
 			}
@@ -186,7 +184,7 @@ public class ShiftControler {
 				throw new NoMoreShiftException();
 			}
 			for(int i =0;i<userShift.size();i++) {
-				if(userShift.get(i).getShift().getShiftTime().compareTo(time.getNowTime())<0) {
+				if(userShift.get(i).getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())<0) {
 					userShift.get(i).getShift().setActive(false);
 					shift.setNumber(userShift.get(i).getShift().getNumber());
 					shift.setLetter(userShift.get(i).getShift().getLetter());
@@ -308,8 +306,8 @@ public class ShiftControler {
 					String documentType = users.get(k).getDocumentType();
 					String typeNmae = type.get(t).getName();
 					assignShift(documentNumber,documentType,typeNmae);
-					LocalDateTime plus = userShift.get(userShift.size()-1).getShift().getShiftTime();
-					userShift.get(userShift.size()-1).getShift().setShiftTime(plus.plusDays(i));
+					LocalDateTime plus = userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime();
+					userShift.get(userShift.size()-1).getShift().getCurrent().setShiftTime(plus.plusDays(i));
 					
 					
 				}

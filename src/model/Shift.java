@@ -1,18 +1,19 @@
 package model;
 import java.time.*;
 
-public class Shift extends CurrentTime{
+public class Shift {
 	//ATRUBUTES
 	private Type type;
 	private char letter;
 	private int number;
 	private String shift;
+	private CurrentTime current;
 	private boolean attended;
 	private boolean active;
 	
 	//CONSTRUCTOR
 	public Shift(LocalDateTime time,Type type,char letter,int number, String shift,boolean attended,boolean active) {
-		super(time);
+		setCurrent(new CurrentTime(time));
 		this.setType(type);
 		this.letter = letter;
 		this.number = number;
@@ -59,5 +60,19 @@ public class Shift extends CurrentTime{
 
 	public void setType(Type type) {
 		this.type = type;
+	}
+
+	/**
+	 * @return the current
+	 */
+	public CurrentTime getCurrent() {
+		return current;
+	}
+
+	/**
+	 * @param current the current to set
+	 */
+	public void setCurrent(CurrentTime current) {
+		this.current = current;
 	}
 }

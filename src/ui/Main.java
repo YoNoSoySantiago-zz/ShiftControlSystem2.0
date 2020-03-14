@@ -26,7 +26,7 @@ public class Main {
 		boolean continue1= true,attended = false;
 		int optionAux=0;
 		int option = Integer.parseInt(s.nextLine().trim());
-		String name="",lastName="",documentNumber="",documentType="",locate="",numberPhone="";
+		String name="",lastName="",documentNumber="",documentType="",locate="",numberPhone="",shiftType="";
 		try {
 			
 			switch(option) {
@@ -71,7 +71,6 @@ public class Main {
 				if(optionAux ==1) {
 					System.out.println("Type the locate of the user");
 					locate=s.nextLine().trim();
-				
 				}else if(optionAux!=0){
 					System.out.println("this option is not correct so it will become a not automatically");
 				}
@@ -120,7 +119,7 @@ public class Main {
 				System.out.println("Type: \n1. to assign shift\n0. to Cancel");
 				optionAux = Integer.parseInt(s.nextLine().trim());
 				if(optionAux ==1) {
-					shiftControler.assignShift(documentNumber, documentType);
+					shiftControler.assignShift(documentNumber, documentType,shiftType);
 					System.out.println("User's shift assigned\n");
 				}else if(optionAux != 0) { 
 					System.out.println("this option is not correct so it will become to Cancel automatically");
@@ -157,6 +156,10 @@ public class Main {
 		}
 		
 		return continue1;
+	}
+	
+	public void case1() {
+		
 	}
 }
 
