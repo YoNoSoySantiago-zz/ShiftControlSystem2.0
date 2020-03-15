@@ -75,4 +75,8 @@ public class Shift {
 	public void setCurrent(CurrentTime current) {
 		this.current = current;
 	}
+
+	/**
+	 * @return the ban
+	 */
 }

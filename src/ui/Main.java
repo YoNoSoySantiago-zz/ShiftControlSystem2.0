@@ -1,18 +1,46 @@
 package ui;
 import model.*;
+
 import exceptions.*;
+
+import java.io.*;
 import java.util.Scanner;
 
 public class Main {
-	private ShiftControler shiftControler = new ShiftControler(); 
+	private ShiftControler shiftControler = new ShiftControler();
+	public final static String NAME_DATA="data/data.ynss";
 	public static void main(String[]args) throws IdUserExistException, ValueIsEmptyException {
 		boolean continue1 = true;
 		System.out.println("=============================\nWELCOME\n=============================\n");
 		Main main = new Main();
+		File file = new File(NAME_DATA);
+		if(file.canRead() &&file.exists()) {
+			try {
+				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(NAME_DATA));
+				main.shiftControler = (ShiftControler) ois.readObject();
+				ois.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		do {
 			main.showMenu();
 			continue1 = main.start();
 		}while(continue1 == true);
+		
+		try {
+			ObjectOutputStream ops = new ObjectOutputStream(new FileOutputStream(NAME_DATA));
+			ops.writeObject(main.shiftControler);
+			ops.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		
 		
 	}
@@ -23,7 +51,9 @@ public class Main {
 	public boolean start(){
 		@SuppressWarnings("resource")
 		Scanner s = new Scanner(System.in);
-		boolean continue1= true,attended = false;
+		boolean continue1= true;
+		double time1 =0;
+		double time2 =0;
 		int optionAux=0;
 		int option = Integer.parseInt(s.nextLine().trim());
 		String name="",lastName="",documentNumber="",documentType="",locate="",numberPhone="",shiftType="";
@@ -84,6 +114,7 @@ public class Main {
 					System.out.println("this option is not correct so it will become to not automatically");
 					
 				}
+				time1 =System.currentTimeMillis();
 				shiftControler.registerUser(name, lastName, documentType, documentNumber, locate, numberPhone);
 				System.out.println("User add correctly\n");
 				break;
@@ -118,6 +149,7 @@ public class Main {
 				System.out.println(shiftControler.searchUser(documentNumber,documentType));
 				System.out.println("Type: \n1. to assign shift\n0. to Cancel");
 				optionAux = Integer.parseInt(s.nextLine().trim());
+				time1 =System.currentTimeMillis();
 				if(optionAux ==1) {
 					shiftControler.assignShift(documentNumber, documentType,shiftType);
 					System.out.println("User's shift assigned\n");
@@ -128,21 +160,14 @@ public class Main {
 				break;
 			case 3:
 				//throws NoMoreShiftException
-				System.out.println("please type \n1. if the user was attended \n0. if the user was not in the attention room");
-				optionAux = Integer.parseInt(s.nextLine().trim());
-				if(optionAux == 1 && optionAux!=0) {
-					attended = true;
-				}else if(optionAux == 0){
-					attended = true;
-				}else {
-					System.out.println("this option is not correct so it will become a not automatically");
-					attended = false;
-				}
+				time1 =System.currentTimeMillis();
 				shiftControler.advanceShift();
 				System.out.println("attended correctly");
 				
 				
 			}
+			time2 = System.currentTimeMillis();
+			System.out.println("The system took: "+(time2-time1)+"ms");
 		}catch(IdUserExistException e) {
 			System.out.println(e.getMessage());
 		}catch(ValueIsEmptyException e) {
@@ -153,6 +178,11 @@ public class Main {
 			System.out.println(e.getMessage());
 		}catch(UserNoExistException e) {
 			System.out.println(e.getMessage());
+		} catch (ShiftTypeNotExist e) {
+			System.out.println(e.getMessage());
+		} catch (UserHasBeenBannedException e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
 		
 		return continue1;

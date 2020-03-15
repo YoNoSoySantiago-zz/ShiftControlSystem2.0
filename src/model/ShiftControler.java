@@ -3,14 +3,17 @@ import exceptions.*;
 
 import java.io.*;
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class ShiftControler {
+@SuppressWarnings("serial")
+public class ShiftControler implements Serializable{
 	//ATRIBUTES
 	private ArrayList<User> users;
 	private ArrayList<User> userShift;
 	private ArrayList<Type> type;
+	private ArrayList<User> userAttended;
 	private Shift shift;
 	private CurrentTime time;
 	
@@ -21,6 +24,7 @@ public class ShiftControler {
 	public ShiftControler() {
 		users = new ArrayList<User>();
 		userShift = new ArrayList<User>();
+		type = new ArrayList<Type>();
 		shift = new Shift(time.getNowTime(),null,'A',0,"A00",false,true);
 	}
 	
@@ -44,6 +48,7 @@ public class ShiftControler {
 				break;
 			}
 		}
+		
 		if(result == "") {
 			throw new UserNoExistException();
 		}
@@ -61,21 +66,35 @@ public class ShiftControler {
 	 * 
 	 * @throws UserAlreadyHasShiftException this exception will be thrown when the user to assign a shift already have a shift assigned over the current shift
 	 * @throws ShiftTypeNotExist 
+	 * @throws UserHasBeenBanned 
 	 */
-	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException, ShiftTypeNotExist {
+	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException, ShiftTypeNotExist, UserHasBeenBannedException {
 		
 		for(int j =0;j<userShift.size();j++) {
 			int letterUser = (int)userShift.get(j).getShift().getLetter();
 			int letterShift = (int)shift.getLetter();
-			if(userShift.get(j).getDocumentNumber().equals(documentNumber) && letterShift<= letterUser && userShift.get(j).getDocumentType().equals(documentType)) {
+			long days = ChronoUnit.DAYS.between(userShift.get(j).getShift().getCurrent().getShiftTime(), time.getNowTime());
+			if(time.getNowTime().compareTo(userShift.get(j).getShift().getCurrent().getShiftTime())<0) {
+				days*=-1;
+			}
+			
+			if((userShift.get(j).getDocumentNumber().equals(documentNumber) && letterShift<= letterUser && userShift.get(j).getDocumentType().equals(documentType))&&days<=0	) {
 				if(letterShift== letterUser) {
 					if(shift.getNumber()<userShift.get(j).getShift().getNumber()) {		
 						throw new UserAlreadyHasShiftException();
 					}
 				}else{
+	
 					throw new UserAlreadyHasShiftException();
 				}
 							
+			}
+			if(userShift.get(j).getBan()>1) {
+				if(time.getNowTime().compareTo(userShift.get(j).getShift().getCurrent().getShiftTime())>0) {
+					if(days>=2) {
+						userShift.get(j).setBan(0);
+					}else throw new UserHasBeenBannedException();
+				}
 			}
 		}
 		Type shiftType=null;
@@ -106,7 +125,11 @@ public class ShiftControler {
 	 */
 	public Shift generateNextShift(Type type) {
 		Shift shift = new Shift(time.getNowTime(),type,'A',0,"A00",false,true);
-		if(userShift.size()>0) {
+		long days = ChronoUnit.DAYS.between(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime(), time.getNowTime());
+		if(time.getNowTime().compareTo(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime())<0) {
+			days*=-1;
+		}
+		if(userShift.size()>0 && days<=0) {
 			User userLast = userShift.get(userShift.size()-1);
 			char letter =userLast.getShift().getLetter();
 			int number = userLast.getShift().getNumber();
@@ -184,10 +207,16 @@ public class ShiftControler {
 				throw new NoMoreShiftException();
 			}
 			for(int i =0;i<userShift.size();i++) {
-				if(userShift.get(i).getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())<0) {
-					userShift.get(i).getShift().setActive(false);
-					shift.setNumber(userShift.get(i).getShift().getNumber());
-					shift.setLetter(userShift.get(i).getShift().getLetter());
+				if(userShift.get(0).getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())<0) {
+					Random r = new Random();
+					boolean attended=r.nextBoolean();
+					userShift.get(0).getShift().setActive(false);
+					userShift.get(0).getShift().setAttended(attended);
+					userShift.get(0).setBan(userShift.get(0).getBan()+1);
+					shift.setNumber(userShift.get(0).getShift().getNumber());
+					shift.setLetter(userShift.get(0).getShift().getLetter());
+					userAttended.add(userShift.get(0));
+					userShift.remove(0);
 				}else {
 					break;
 				}
@@ -217,6 +246,11 @@ public class ShiftControler {
 		if(this.time.getNowTime().compareTo(local)<=0) {
 			int[] result = new int[]{year,month,day,hour,minute,second};
 			this.time.setAdelanted(result);
+			try {
+				advanceShift();
+			} catch (NoMoreShiftException e) {
+				//Nothing
+			}
 		}else {
 			throw new TimeDateNoValid();
 		}
@@ -225,9 +259,15 @@ public class ShiftControler {
 	public void changeTime() {
 		int[] result = new int[6];
 		time.setAdelanted(result);
+		try {
+			advanceShift();
+		} catch (NoMoreShiftException e) {
+			//Nothing
+		}
 	}
 	
 	///PRE_ Duration is bigger than 0
+	//Req1
 	public void addTypeShift(String name,double duration) throws NameShiftTypeAlreadyExist {
 		Type type = new Type(name,duration);
 		for (int i = 0; i < this.type.size(); i++) {
@@ -237,88 +277,207 @@ public class ShiftControler {
 		}
 		this.type.add(type);
 	}
-	public void generateReportUserShift(String documentType,String documentNumber,boolean print) throws IOException, UserNoExistException {
+	public void generateReportUserShift(String documentType,String documentNumber,int option) throws IOException, UserNoExistException {
 		searchUser(documentNumber,documentType);
 		boolean aux = false;
-		File file = new File("data/"+documentNumber);
-		PrintWriter pr = new PrintWriter(file);
+		File file = new File("data/"+documentNumber+".txt");
+		PrintWriter pw = new PrintWriter(file);
 		BufferedReader br = new BufferedReader(new FileReader(file));
+		String result="";
+		for (int i = 0; i < userAttended.size(); i++) {
+			if(userAttended.get(i).getDocumentNumber().equals(documentNumber)&&userAttended.get(i).getDocumentType().equals(documentType)) {
+				aux = true;
+				result+=(userAttended.get(i).getShift().getShift()+"\n");
+				if(userAttended.get(i).getShift().isActive()==true) {
+					result+=("Already has been attended: "+" YES");
+				}else {
+					result+=("Already has been attended: "+" NO");
+				}
+				if(userAttended.get(i).getShift().isAttended()==true) {
+					result+="\n"+("was into the room?: "+" YES");
+				}else {
+					result+="\n"+("was into the room?: "+" NO");
+				}
+			}
+		}
 		for (int i = 0; i < userShift.size(); i++) {
 			if(userShift.get(i).getDocumentNumber().equals(documentNumber)&&userShift.get(i).getDocumentType().equals(documentType)) {
 				aux = true;
-				pr.print(userShift.get(i).getShift().getShift()+" ");
+				result+=(userShift.get(i).getShift().getShift()+" ");
 				if(userShift.get(i).getShift().isActive()==true) {
-					pr.print("Already has been attended: "+" YES");
+					result+=("Already has been attended: "+" YES");
 				}else {
-					pr.print("Already has been attended: "+" NO");
+					result+=("Already has been attended: "+" NO");
 				}
 				if(userShift.get(i).getShift().isAttended()==true) {
-					pr.println("is into the room?: "+" YES");
+					result+="\n"+("is into the room?: "+" YES");
 				}else {
-					pr.println("is into the room?: "+" NO");
+					result+="\n"+("is into the room?: "+" NO");
 				}
-				if(print ==true) {
-					pr.flush();
-					System.out.println(br.readLine());
-				}
-				
-				
 			}
 		}
+		
 		if(aux ==false) {
 			System.out.println("This user has not had a shift yet");
+		}else {
+			if(option ==-1 || option ==0) {
+				System.out.println(result);
+			}
+			if(option == 1||option ==0) {
+				pw.write(result);
+			}
 		}
 		br.close();
-		pr.close();
+		pw.close();
 	}
-	public void generateReportShiftUsers(String code,boolean print) throws IOException {
-		File file = new File("data/ShiftUsers");
+	public void generateReportShiftUsers(String code,int option) throws IOException {
+		File file = new File("data/ShiftUsers/"+code);
 		boolean aux = false;
-		PrintWriter pr = new PrintWriter(file);
+		PrintWriter pw = new PrintWriter(file);
 		BufferedReader br = new BufferedReader(new FileReader(file));
+		ArrayList<User> array = new ArrayList<User>();
+		String result="";
+		for (int i = 0; i < userAttended.size(); i++) {
+			if(userAttended.get(i).getShift().getShift().equals(code)) {
+				array.add(userAttended.get(i));
+				
+				
+			}
+		}
 		for (int i = 0; i < userShift.size(); i++) {
 			if(userShift.get(i).getShift().getShift().equals(code)) {
-				aux =true;
-				pr.print(userShift.get(i).getName()+" ");
-				pr.println("Document: "+userShift.get(i).getDocumentType()+" "+userShift.get(i).getDocumentNumber());
-				if(print ==true) {
-					pr.flush();
-					System.out.println(br.readLine());
-				}
+				array.add(userShift.get(i));
 			}
 		}
+		//ORDENAR POR NAME,DOCUMENT NUMBER,SHIFT TYPE
+		for (int i = 0; i < array.size(); i++) {
+			aux =true;
+			result+=(array.get(i).getName()+"/");
+			result+=""+("Document: "+array.get(i).getDocumentType()+" "+array.get(i).getDocumentNumber())+"";
+			result+="/Type of shift: "+array.get(i).getShift().getType().getName()+"\n";
+			}
 		if(aux ==false) {
 			System.out.println("No one peaple has get this shift");
+		}else {
+			if(option ==-1 || option ==0) {
+				System.out.println(result);
+			}
+			if(option == 1||option ==0) {
+				pw.write(result);
+			}
 		}
-		pr.close();
+		pw.close();
 		br.close();
 	}
+	/*
+	 * Sort by burbuja-compareTo String generateReportUserShift por code asc
+	 * Insertion generateReportUserShift document
+	 * seleccion 
+	 */
+	
 	//String documentNumber,String documentType,String type
-	public	void generateRamdonShift(int[] cant) throws UserAlreadyHasShiftException, ShiftTypeNotExist {
+	public	void generateRamdonShift(int[] cant) {
 		if(type.size()>0) {
-			for (int i = 0; i < cant.length; i++) {
-				Random rnd = new Random();
-				Random rndT = new Random();
-				for (int j = 0; j < cant[i]&&j<users.size(); j++) {
-					int k = rnd.nextInt()*(users.size()-1)+0;
-					int t = rndT.nextInt()*type.size()-1;
-					String documentNumber = users.get(k).getDocumentNumber();
-					String documentType = users.get(k).getDocumentType();
-					String typeNmae = type.get(t).getName();
-					assignShift(documentNumber,documentType,typeNmae);
-					LocalDateTime plus = userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime();
-					userShift.get(userShift.size()-1).getShift().getCurrent().setShiftTime(plus.plusDays(i));
-					
-					
+			if(users.size()>0) {
+				for (int i = 0; i < cant.length; i++) {
+					Random rnd = new Random();
+					Random rndT = new Random();
+					LocalDateTime plus = time.getNowTime().plusDays(i);
+					Shift shift =new Shift(plus,null,'A',0,"---",false,true);
+					for (int j = 0; j < cant[i]&&j<users.size(); j++) {
+						int k = rnd.nextInt()*(users.size()-1)+0;
+						int t = rndT.nextInt()*type.size()-1;
+						if(j==0) {
+							shift.setType(type.get(t));
+						}else {
+							shift = generateNextShift(type.get(t));
+						}
+						User user = users.get(k);
+						user.setShift(shift);
+						userShift.add(user);							
+					}
 				}
 			}
+			
 		}else System.out.println("Please create first the types of shifts");
 		
 	}
-	public void generateRamdonUsers(int n) {
-		for (int i = 0; i < n; i++) {
-			
+	@SuppressWarnings("resource")
+	public void generateRamdonUsers(int n) throws IOException {
+		File file = new File("DocumentNumber.txt");
+		String name,lastName,street,phone,document,type = "";
+		int d=0;
+		BufferedReader br = new BufferedReader(new FileReader(new File("UserName.txt")));
+		String[] names = br.readLine().split(";");
+		br = new BufferedReader(new FileReader(new File("UserLastName.txt")));
+		String[] lastNames = br.readLine().split(";");
+		br = new BufferedReader(new FileReader(new File("StreetAdrees.txt")));
+		String[] streets = br.readLine().split(";");
+		br = new BufferedReader(new FileReader(new File("NumberPhone.txt")));
+		String[] phones = br.readLine().split(";");
+		br = new BufferedReader(new FileReader(file));
+		String[] documents = br.readLine().split(";");
+		Random r = new Random();
+		Random rN = new Random();
+		Random rL = new Random();
+		Random rS = new Random();
+		Random rP = new Random();
+		Random rD = new Random();
+		Random t = new Random();
+		if(documents.length>0) {
+			for (int i = 0; i < n && i<4000; i++) {
+				int t1 = t.nextInt()*3;
+				switch(t1+1) {
+				case 1:
+					type = User.CC;
+					break;
+				case 2:
+					type = User.CR;
+					break;
+				case 3:
+					type = User.FIC;
+					break;
+				case 4:
+					type = User.PS;
+					break;
+				}
+				d =rD.nextInt()*documents.length-1;
+				document = documents[d];
+				name = names[rN.nextInt()*(names.length-1)];
+				lastName = lastNames[rL.nextInt()*(lastNames.length-1)];
+				if(r.nextBoolean()==true) {
+					street = streets[rS.nextInt()*(streets.length-1)];
+				}else street = User.UNKNOWN;
+				if(r.nextBoolean()==true) {
+					phone = phones[rP.nextInt()*phones.length-1];
+				}else phone = User.UNKNOWN;
+				//registerUser(String name,String lastName,String documentType,String documentNumber,String locate,String numberPhone)
+				try {
+					registerUser(name, lastName, type, document, street, phone);
+				} catch (IdUserExistException | ValueIsEmptyException e) {
+					documents[d]="";
+				}
+				
+			}
+			file.delete();
+			PrintWriter pw = new PrintWriter(new File("DocumentNumber.txt"));
+			boolean first = false;
+			for (int i = 0; i < documents.length; i++) {
+				if(documents[i]!="") {
+					if(first==false) {
+						pw.write(documents[i]);
+						first=true;
+					}else {
+						pw.write(";"+documents[i]);
+					}
+				}
+				
+			}
+			pw.close();
 		}
+		
+		br.close();
+		
 	}
 	public String getShift() {
 		return shift.getShift();

@@ -4,8 +4,8 @@ import java.io.*;
 public class Auxd {
 	public static void main(String[]args) throws IOException {
 		
-		File file = new File("data/UserN.txt");
-		File fileR = new File("data/UserName.txt");
+		File file = new File("data/DN.txt");
+		File fileR = new File("data/DocumentNumber.txt");
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		PrintWriter pw = new PrintWriter(fileR);
 		String str = br.readLine();

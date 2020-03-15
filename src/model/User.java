@@ -1,6 +1,6 @@
 package model;
 
-public class User {
+public class User implements Comparable{
 	//ATRIBUTES
 	private String name;
 	private String lastName;
@@ -10,12 +10,12 @@ public class User {
 	private String locate;
 	private String numberPhone;
 	private Shift shift;
+	private int ban=0;
 	public static final String CC = "citizenship card";
 	public static final String CR = "civil registration";
 	public static final String PS = "passport";
 	public static final String FIC = "foreign identity card";
 	public static final String UNKNOWN = "unknown";
-	
 	
 	//CONTRUCTOR
 	public User(String name,String lastName,String documentType,String documentNumber,String locate,String numberPhone,Shift shift) {
@@ -41,6 +41,9 @@ public class User {
 	public String getName() {
 		return name;
 	}
+	public String getLastName() {
+		return lastName;
+	}
 	public String getDocumentNumber() {
 		return documentNumber;
 	}
@@ -51,6 +54,39 @@ public class User {
 
 	public void setShift(Shift shift) {
 		this.shift = shift;
+	}
+
+	/**
+	 * @return the ban
+	 */
+	public int getBan() {
+		return ban;
+	}
+
+	/**
+	 * @param ban the ban to set
+	 */
+	public void setBan(int ban) {
+		this.ban = ban;
+	}
+	
+
+	@Override
+	public int compareTo(Object o) {
+		User user = (User)o;
+		int result =0;
+		if(shift.getLetter()>user.getShift().getLetter()) {
+			result =1;
+		}else if(shift.getLetter()<user.getShift().getLetter()) {
+			result =-1;
+		}else {
+			if(shift.getNumber()>user.getShift().getNumber()) {
+				result =1;
+			}else if(shift.getNumber()<user.getShift().getNumber()) {
+				result=-1;
+			}
+		}
+		return result;
 	}
 	
 }
