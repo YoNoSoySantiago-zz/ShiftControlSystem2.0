@@ -1,6 +1,8 @@
 package model;
+import java.io.Serializable;
 import java.time.LocalDateTime;
-public class CurrentTime {
+@SuppressWarnings("serial")
+public class CurrentTime implements Serializable{
 	private LocalDateTime nowTime = LocalDateTime.now();
 	private int[] adelanted = new int[6];
 	private LocalDateTime shiftTime;

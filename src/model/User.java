@@ -1,6 +1,9 @@
 package model;
 
-public class User implements Comparable{
+import java.io.Serializable;
+
+@SuppressWarnings({ "rawtypes", "serial" })
+public class User implements Comparable, Serializable{
 	//ATRIBUTES
 	private String name;
 	private String lastName;

@@ -1,7 +1,9 @@
 package model;
+import java.io.Serializable;
 import java.time.*;
 
-public class Shift {
+@SuppressWarnings("serial")
+public class Shift implements Serializable{
 	//ATRUBUTES
 	private Type type;
 	private char letter;

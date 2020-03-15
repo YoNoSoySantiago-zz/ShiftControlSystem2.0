@@ -1,6 +1,9 @@
 package model;
 
-public class Type {
+import java.io.Serializable;
+
+@SuppressWarnings("serial")
+public class Type implements Serializable{
 	private String name;
 	private double duration;
 	public  Type(String name,double duration) {

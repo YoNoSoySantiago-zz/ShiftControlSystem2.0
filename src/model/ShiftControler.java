@@ -5,6 +5,9 @@ import java.io.*;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Random;
 
 @SuppressWarnings("serial")
@@ -25,6 +28,7 @@ public class ShiftControler implements Serializable{
 		users = new ArrayList<User>();
 		userShift = new ArrayList<User>();
 		type = new ArrayList<Type>();
+		time = new CurrentTime(null);
 		shift = new Shift(time.getNowTime(),null,'A',0,"A00",false,true);
 	}
 	
@@ -235,15 +239,18 @@ public class ShiftControler implements Serializable{
 		long second = time.getNowTime().getSecond()+time.getAdelanted()[5];
 		System.out.println(year+"/"+month+"/"+day+"/"+hour+"/"+minute+"/"+second);
 	}
-	@SuppressWarnings("static-access")
 	public void changeTime(int year,int month,int day,int hour,int minute,int second) throws TimeDateNoValid {
-		LocalDate date = null;
-		date.of(year,month,day);
-		LocalTime time = null;
-		time.of(hour,minute,second);
-		LocalDateTime local = null;
-		local.of(date,time);
+		LocalDate date = LocalDate.of(year,month,day);
+		LocalTime time = LocalTime.of(hour,minute,second);
+		LocalDateTime local = LocalDateTime.of(date,time);
+		LocalDateTime now =this.time.getNowTime();
 		if(this.time.getNowTime().compareTo(local)<=0) {
+			year -= this.time.getNowTime().getYear();
+			month = month>now.getMonthValue()?month-now.getMonthValue():now.getMonthValue()-month;
+			day = day>now.getDayOfMonth()?day-now.getDayOfMonth():now.getDayOfMonth()-day;
+			hour = hour>now.getHour()?hour-now.getHour():now.getHour()-hour;
+			minute = minute>now.getMinute()?minute-now.getMinute():now.getMinute()-minute;
+			second = second>now.getSecond()?second-now.getSecond():now.getSecond()-second;
 			int[] result = new int[]{year,month,day,hour,minute,second};
 			this.time.setAdelanted(result);
 			try {
@@ -277,45 +284,49 @@ public class ShiftControler implements Serializable{
 		}
 		this.type.add(type);
 	}
-	public void generateReportUserShift(String documentType,String documentNumber,int option) throws IOException, UserNoExistException {
+	public void generateReportUserShift(String documentType,String documentNumber,int option,int order) throws IOException, UserNoExistException {
 		searchUser(documentNumber,documentType);
 		boolean aux = false;
 		File file = new File("data/"+documentNumber+".txt");
 		PrintWriter pw = new PrintWriter(file);
 		BufferedReader br = new BufferedReader(new FileReader(file));
+		ArrayList<User>array = new ArrayList<User>();
+		
 		String result="";
 		for (int i = 0; i < userAttended.size(); i++) {
 			if(userAttended.get(i).getDocumentNumber().equals(documentNumber)&&userAttended.get(i).getDocumentType().equals(documentType)) {
-				aux = true;
-				result+=(userAttended.get(i).getShift().getShift()+"\n");
-				if(userAttended.get(i).getShift().isActive()==true) {
-					result+=("Already has been attended: "+" YES");
-				}else {
-					result+=("Already has been attended: "+" NO");
-				}
-				if(userAttended.get(i).getShift().isAttended()==true) {
-					result+="\n"+("was into the room?: "+" YES");
-				}else {
-					result+="\n"+("was into the room?: "+" NO");
-				}
+				array.add(userAttended.get(i));
 			}
 		}
 		for (int i = 0; i < userShift.size(); i++) {
 			if(userShift.get(i).getDocumentNumber().equals(documentNumber)&&userShift.get(i).getDocumentType().equals(documentType)) {
-				aux = true;
-				result+=(userShift.get(i).getShift().getShift()+" ");
-				if(userShift.get(i).getShift().isActive()==true) {
-					result+=("Already has been attended: "+" YES");
-				}else {
-					result+=("Already has been attended: "+" NO");
-				}
-				if(userShift.get(i).getShift().isAttended()==true) {
-					result+="\n"+("is into the room?: "+" YES");
-				}else {
-					result+="\n"+("is into the room?: "+" NO");
-				}
+				array.add(userShift.get(i));
+				
 			}
 		}
+		User[]array1 = new User[array.size()];
+		for (int i = 0; i < array1.length; i++) {
+			array1[i]=array.get(i);
+		}
+		//SORT BY CODE
+		if(order==1) {
+			Arrays.sort(array1);
+		}
+		for (int i = 0; i < array1.length; i++) {
+			aux = true;
+			result+=(array1[i].getShift().getShift()+" ");
+			if(array1[i].getShift().isActive()==true) {
+				result+=("Already has been attended: "+" YES");
+			}else {
+				result+=("Already has been attended: "+" NO");
+			}
+			if(array1[i].getShift().isAttended()==true) {
+				result+="\n"+("is into the room?: "+" YES");
+			}else {
+				result+="\n"+("is into the room?: "+" NO");
+			}
+		}
+		
 		
 		if(aux ==false) {
 			System.out.println("This user has not had a shift yet");
@@ -330,7 +341,8 @@ public class ShiftControler implements Serializable{
 		br.close();
 		pw.close();
 	}
-	public void generateReportShiftUsers(String code,int option) throws IOException {
+	@SuppressWarnings("unchecked")
+	public void generateReportShiftUsers(String code,int option,int order) throws IOException {
 		File file = new File("data/ShiftUsers/"+code);
 		boolean aux = false;
 		PrintWriter pw = new PrintWriter(file);
@@ -349,12 +361,43 @@ public class ShiftControler implements Serializable{
 				array.add(userShift.get(i));
 			}
 		}
-		//ORDENAR POR NAME,DOCUMENT NUMBER,SHIFT TYPE
+		User[] array1 = new User[array.size()];
+		for (int i = 0; i < array1.length; i++) {
+			array1[i]=array.get(i);
+		}
+		//ORDENAR POR NAME,LASTNAME,DOCUMENT NUMBER,SHIFT TYPE
+		switch(order) {
+		case 1:
+			//Sort by name ascendent
+			array1 =insertionSortByName(array1);
+			break;
+		case 2:
+			//Sort by name descendant
+			Comparator<User> comparatorReverName = new ReverseOrderSortName() {	};
+			Arrays.sort(array1,comparatorReverName);
+			break;
+		case 3:
+			//Sort by lastName ascendent
+			Arrays.sort(array1, new SortByLastName());
+			break;
+		case 4:
+			//Sort by lastName descendant
+			Arrays.sort(array1,Collections.reverseOrder(new SortByLastName()));
+			break;
+		case 5:
+			//Sort by Document Number
+			array1 = selectionSortByDocumentNumber(array1);
+			break;
+		case 6:
+			//Sort by ShiftType
+			array1 = bubbleSortByShiftType(array1);
+			break;
+		}
 		for (int i = 0; i < array.size(); i++) {
 			aux =true;
-			result+=(array.get(i).getName()+"/");
-			result+=""+("Document: "+array.get(i).getDocumentType()+" "+array.get(i).getDocumentNumber())+"";
-			result+="/Type of shift: "+array.get(i).getShift().getType().getName()+"\n";
+			result+=(array1[i].getName()+" "+array.get(i).getLastName()+"/");
+			result+=""+("Document: "+array1[i].getDocumentType()+" "+array1[i].getDocumentNumber())+"";
+			result+="/Type of shift: "+array1[i].getShift().getType().getName()+"\n";
 			}
 		if(aux ==false) {
 			System.out.println("No one peaple has get this shift");
@@ -374,6 +417,51 @@ public class ShiftControler implements Serializable{
 	 * Insertion generateReportUserShift document
 	 * seleccion 
 	 */
+	public User[] bubbleSortByShiftType(User[] array){
+		for (int i = array.length; i > 0; i--) {
+			for (int j = 0; j < i-1; j++) {		
+				if(array[j].getShift().getType().getName().compareTo(array[j+1].getShift().getType().getName())>0) {
+					User temp = array[j];
+					array[i]=array[j+1];
+					array[j+1]=temp;
+				}else if(array[i].getShift().getType().getName().compareTo(array[j+1].getShift().getType().getName())==0) {
+					if(array[i].compareTo(array[j+1])>0) {
+						User temp = array[j];
+						array[i]=array[j+1];
+						array[j+1]=temp;
+					}
+				}
+			}
+		}
+		return array;
+	}
+	public User[] insertionSortByName(User[]array){
+		for (int i = 1; i < array.length; i++) {
+			for (int j = i; j > 0 && array[j-1].compareTo(array[j])>0; j--) {
+				User temp = array[j];
+				array[i]=array[j-1];
+				array[j-1]=temp;
+			}
+		}
+		return array;
+	}
+	public User[] selectionSortByDocumentNumber(User[] array){
+		for (int i = 0; i < array.length; i++) {
+			int menor = Integer.parseInt(array[i].getDocumentNumber());
+			int cual =i;
+			for (int j = i+1; j < array.length; j++) {
+				int document1 = Integer.parseInt(array[j].getDocumentNumber());
+				if(document1<menor	) {
+					menor = document1;
+					cual =j;
+				}
+			}
+			User temp = array[i];
+			array[i]=array[cual];
+			array[cual]=temp;
+		}
+		return array;
+	}
 	
 	//String documentNumber,String documentType,String type
 	public	void generateRamdonShift(int[] cant) {
@@ -481,6 +569,19 @@ public class ShiftControler implements Serializable{
 	}
 	public String getShift() {
 		return shift.getShift();
+	}
+	//Anonymous Class
+	@SuppressWarnings("rawtypes")
+	public class ReverseOrderSortName implements Comparator{
+
+		@Override
+		public int compare(Object o1, Object o2) {
+			User user1 = (User)o1;
+			User user2 = (User) o2;
+			int result = user1.compareTo(user2);
+			return result*-1;
+		}
+		
 	}
 	///Methods for JUnitTest
 	public ArrayList<User> getUserList(){
