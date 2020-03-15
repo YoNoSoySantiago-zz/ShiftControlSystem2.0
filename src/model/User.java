@@ -9,7 +9,6 @@ public class User implements Comparable, Serializable{
 	private String lastName;
 	private String documentType;
 	private String documentNumber;
-	@SuppressWarnings("unused")
 	private String locate;
 	private String numberPhone;
 	private Shift shift;
@@ -49,6 +48,9 @@ public class User implements Comparable, Serializable{
 	}
 	public String getDocumentNumber() {
 		return documentNumber;
+	}
+	public String getLocate() {
+		return locate;
 	}
 
 	public Shift getShift() {

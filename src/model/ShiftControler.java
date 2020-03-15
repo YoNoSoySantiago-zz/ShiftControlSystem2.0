@@ -253,12 +253,18 @@ public class ShiftControler implements Serializable{
 		}
 	}
 	public void showSystemTime(){
-		long year = time.getNowTime().getYear()+time.getAdelanted()[0];
-		long month =time.getNowTime().getMonthValue()+time.getAdelanted()[1];
-		long day = time.getNowTime().getDayOfMonth()+time.getAdelanted()[2];
-		long hour = time.getNowTime().getHour()+time.getAdelanted()[3];
+		long second = (time.getNowTime().getSecond()+time.getAdelanted()[5]);
 		long minute = time.getNowTime().getMinute()+time.getAdelanted()[4];
-		long second = time.getNowTime().getSecond()+time.getAdelanted()[5];
+		long hour = time.getNowTime().getHour()+time.getAdelanted()[3];
+		long day = time.getNowTime().getDayOfMonth()+time.getAdelanted()[2];
+		long month =time.getNowTime().getMonthValue()+time.getAdelanted()[1];
+		long year = time.getNowTime().getYear()+time.getAdelanted()[0];
+		year += month/12;
+		month = (month%12)+(day/30);
+		day = (day%30)+(hour/24);
+		hour = (hour%24)+(minute/60);
+		minute = (minute%60)+(second/60);
+		second = second%60;
 		System.out.println(year+"/"+month+"/"+day+"/"+hour+"/"+minute+"/"+second);
 	}
 	public void changeTime(int year,int month,int day,int hour,int minute,int second) throws TimeDateNoValid {
@@ -609,15 +615,5 @@ public class ShiftControler implements Serializable{
 		}
 		
 	}
-	///Methods for JUnitTest
-	public ArrayList<User> getUserList(){
-		return users;
-	}
-	public void setShift(LocalDateTime timer,Type type,char letter,int number,String shift) {
-		this.shift=(new Shift(timer,type,letter,number,shift,false,true)); 
-	}
-	
-	
-	
 }
 

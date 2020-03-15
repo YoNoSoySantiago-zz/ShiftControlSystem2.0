@@ -20,11 +20,9 @@ public class Main {
 				main.shiftControler = (ShiftControler) ois.readObject();
 				ois.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				main.shiftControler=new ShiftControler();
 			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				main.shiftControler=new ShiftControler();
 			}
 		}
 		do {
