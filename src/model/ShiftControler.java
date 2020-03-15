@@ -70,8 +70,8 @@ public class ShiftControler implements Serializable{
 	 * this parameter only can have the following options: citizenship card, civil registration,passport,foreign identity card
 	 * 
 	 * @throws UserAlreadyHasShiftException this exception will be thrown when the user to assign a shift already have a shift assigned over the current shift
-	 * @throws ShiftTypeNotExist 
-	 * @throws UserHasBeenBanned 
+	 * @throws ShiftTypeNotExist  this exception will be thrown when the parameter type, don't exist
+	 * @throws UserHasBeenBanned This exception will be thrown when try to assign a shift to an user that is banned
 	 */
 	public void assignShift(String documentNumber,String documentType,String type) throws UserAlreadyHasShiftException, ShiftTypeNotExist, UserHasBeenBannedException {
 		
@@ -125,7 +125,8 @@ public class ShiftControler implements Serializable{
 	//This method is to generate the next Shift in the list
 	/**
 	 * This method allows to generate the next turn corresponding to the list of assigned shifts (UserShift), 
-	 * the method will take the last assigned turn and increase it by one, to return the result
+	 * the method will take the last assigned turn and increase it by one, to return the result, also add the type of shift to the user
+	 * @param type, this parameter is a refer of the Type class that will be the type of shift to add, this parameter is not null
 	 * @return this method returns an instance of the Shift class, this represent to the next of the list
 	 */
 	public Shift generateNextShift(Type type) {
@@ -211,6 +212,10 @@ public class ShiftControler implements Serializable{
 	 * @param attended this parameter is a boolean and represent if the user was attended or was absent.
 	 * @throws NoMoreShiftException  this exception will be throw when don't exist more shift to continue
 	 */
+	/**
+	 * this method actualize the current shift and put random value to all users with shift that have a turn before of the time now if was attended or not
+	 * @throws NoMoreShiftException this exception will be thrown when no exist more users with shift in the list
+	 */
 	public void advanceShift() throws NoMoreShiftException {	
 		if(userShift.size()>0) {
 			
@@ -238,6 +243,9 @@ public class ShiftControler implements Serializable{
 			throw new NoMoreShiftException();
 		}	
 	}
+	/**
+	 * this method advance all shift in the list no matter what time and put random value to all users with shift if was attended or not
+	 */
 	public void advanceAll() {
 		while(userShift.size()>0){
 			Random r = new Random();
@@ -252,6 +260,9 @@ public class ShiftControler implements Serializable{
 			userShift.remove(0);
 		}
 	}
+	/**
+	 * This method shoe in console the time that corresponding to the time of system with the time that the user can actualize
+	 */
 	public void showSystemTime(){
 		long second = (time.getNowTime().getSecond()+time.getAdelanted()[5]);
 		long minute = time.getNowTime().getMinute()+time.getAdelanted()[4];
@@ -267,6 +278,16 @@ public class ShiftControler implements Serializable{
 		second = second%60;
 		System.out.println(year+"/"+month+"/"+day+"/"+hour+"/"+minute+"/"+second);
 	}
+	/**
+	 * This method is to change the time of the system to a new time but higher than now, this method save the difference of these times
+	 * @param year this parameter is a value that represent the new year that the user want to change
+	 * @param month this parameter is a value that represent the new month that the user want to change
+	 * @param day this parameter is a value that represent the new day that the user want to change
+	 * @param hour this parameter is a value that represent the new hour that the user want to change
+	 * @param minute this parameter is a value that represent the new minute that the user want to change
+	 * @param second this parameter is a value that represent the new second that the user want to change
+	 * @throws TimeDateNoValid this exception will be thrown when the user type values lower that the time now
+	 */
 	public void changeTime(int year,int month,int day,int hour,int minute,int second) throws TimeDateNoValid {
 		LocalDate date = LocalDate.of(year,month,day);
 		LocalTime time = LocalTime.of(hour,minute,second);
@@ -287,6 +308,9 @@ public class ShiftControler implements Serializable{
 		}
 	
 	}
+	/**
+	 * this method return the value of the time to the time of the compete system
+	 */
 	public void changeTime() {
 		int[] result = new int[6];
 		time.setAdelanted(result);
@@ -295,6 +319,12 @@ public class ShiftControler implements Serializable{
 	
 	///PRE_ Duration is bigger than 0
 	//Req1
+	/**
+	 * this method add a type of shift to the list of types of shift
+	 * @param name this parameter represent the name of the type of shift
+	 * @param duration this parameter represent the duration that have the shift
+	 * @throws NameShiftTypeAlreadyExist this exception will be thrown when the name of the type already exist
+	 */
 	public void addTypeShift(String name,double duration) throws NameShiftTypeAlreadyExist {
 		Type type = new Type(name,duration);
 		for (int i = 0; i < this.type.size(); i++) {
@@ -304,6 +334,15 @@ public class ShiftControler implements Serializable{
 		}
 		this.type.add(type);
 	}
+	/**
+	 * this method allow create or show in console a report of the all shift that an user has had in the system.
+	 * @param documentType this parameter represent the type of document that the user have
+	 * @param documentNumber this parameter represent the number of document that the user have
+	 * @param option this parameter is a integer that represent if the user want generate a file, show in console or both
+	 * @param order this parameter is a integer that represent how the user want order the report
+	 * @throws IOException this exception is thrown when the file or folder are damage 
+	 * @throws UserNoExistException this exception will be thrown when the user is not exist
+	 */
 	public void generateReportUserShift(String documentType,String documentNumber,int option,int order) throws IOException, UserNoExistException {
 		searchUser(documentNumber,documentType);
 		boolean aux = false;
@@ -361,6 +400,13 @@ public class ShiftControler implements Serializable{
 		br.close();
 		pw.close();
 	}
+	/**
+	 * this method allow create or show in console a report of the all users that has had a code.
+	 * @param code this parameter is the code that will be search
+	 * @param option this parameter is a integer that represent if the user want generate a file, show in console or both
+	 * @param order this parameter is a integer that represent how the user want order the report
+	 * @throws IOException IOException this exception is thrown when the file or folder are damage 
+	 */
 	@SuppressWarnings("unchecked")
 	public void generateReportShiftUsers(String code,int option,int order) throws IOException {
 		File file = new File("data/"+code+".txt");
