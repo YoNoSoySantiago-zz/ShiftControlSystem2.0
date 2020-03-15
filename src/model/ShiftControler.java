@@ -27,6 +27,7 @@ public class ShiftControler implements Serializable{
 	public ShiftControler() {
 		users = new ArrayList<User>();
 		userShift = new ArrayList<User>();
+		userAttended = new ArrayList<User>();
 		type = new ArrayList<Type>();
 		time = new CurrentTime(null);
 		shift = new Shift(time.getNowTime(),null,'A',0,"A00",false,true);
@@ -129,17 +130,23 @@ public class ShiftControler implements Serializable{
 	 */
 	public Shift generateNextShift(Type type) {
 		Shift shift = new Shift(time.getNowTime(),type,'A',0,"A00",false,true);
-		long days = ChronoUnit.DAYS.between(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime(), time.getNowTime());
-		if(time.getNowTime().compareTo(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime())<0) {
-			days*=-1;
+		long days=0;
+		if(userShift.size()>0) {
+			
+			days = ChronoUnit.DAYS.between(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime(), time.getNowTime());
+			if(time.getNowTime().compareTo(userShift.get(userShift.size()-1).getShift().getCurrent().getShiftTime())<0) {
+				days*=-1;
+			}
 		}
+		
+		
 		if(userShift.size()>0 && days<=0) {
 			User userLast = userShift.get(userShift.size()-1);
 			char letter =userLast.getShift().getLetter();
 			int number = userLast.getShift().getNumber();
 			String shift1= userLast.getShift().getShift();
 			LocalDateTime timer = time.getNowTime();
-			if(userLast.getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())>0) {
+			if(userLast.getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())>=0) {
 				timer = userLast.getShift().getCurrent().getShiftTime().plusSeconds(15);
 				long seconds = (long) (type.getDuration()*60);
 				timer = timer.plusSeconds(seconds);
@@ -211,7 +218,7 @@ public class ShiftControler implements Serializable{
 				throw new NoMoreShiftException();
 			}
 			for(int i =0;i<userShift.size();i++) {
-				if(userShift.get(0).getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())<0) {
+				if(userShift.get(0).getShift().getCurrent().getShiftTime().compareTo(time.getNowTime())<=0) {
 					Random r = new Random();
 					boolean attended=r.nextBoolean();
 					userShift.get(0).getShift().setActive(false);
@@ -219,6 +226,7 @@ public class ShiftControler implements Serializable{
 					userShift.get(0).setBan(userShift.get(0).getBan()+1);
 					shift.setNumber(userShift.get(0).getShift().getNumber());
 					shift.setLetter(userShift.get(0).getShift().getLetter());
+					shift.setShift(userShift.get(0).getShift().getShift());;
 					userAttended.add(userShift.get(0));
 					userShift.remove(0);
 				}else {
@@ -229,6 +237,20 @@ public class ShiftControler implements Serializable{
 		}else {
 			throw new NoMoreShiftException();
 		}	
+	}
+	public void advanceAll() {
+		while(userShift.size()>0){
+			Random r = new Random();
+			boolean attended=r.nextBoolean();
+			userShift.get(0).getShift().setActive(false);
+			userShift.get(0).getShift().setAttended(attended);
+			userShift.get(0).setBan(userShift.get(0).getBan()+1);
+			shift.setNumber(userShift.get(0).getShift().getNumber());
+			shift.setLetter(userShift.get(0).getShift().getLetter());
+			shift.setShift(userShift.get(0).getShift().getShift());
+			userAttended.add(userShift.get(0));
+			userShift.remove(0);
+		}
 	}
 	public void showSystemTime(){
 		long year = time.getNowTime().getYear()+time.getAdelanted()[0];
@@ -253,11 +275,7 @@ public class ShiftControler implements Serializable{
 			second = second>now.getSecond()?second-now.getSecond():now.getSecond()-second;
 			int[] result = new int[]{year,month,day,hour,minute,second};
 			this.time.setAdelanted(result);
-			try {
-				advanceShift();
-			} catch (NoMoreShiftException e) {
-				//Nothing
-			}
+			advanceAll();
 		}else {
 			throw new TimeDateNoValid();
 		}
@@ -266,11 +284,7 @@ public class ShiftControler implements Serializable{
 	public void changeTime() {
 		int[] result = new int[6];
 		time.setAdelanted(result);
-		try {
-			advanceShift();
-		} catch (NoMoreShiftException e) {
-			//Nothing
-		}
+		advanceAll();
 	}
 	
 	///PRE_ Duration is bigger than 0
@@ -314,7 +328,7 @@ public class ShiftControler implements Serializable{
 		}
 		for (int i = 0; i < array1.length; i++) {
 			aux = true;
-			result+=(array1[i].getShift().getShift()+" ");
+			result+=(array1[i].getShift().getShift()+" \n");
 			if(array1[i].getShift().isActive()==true) {
 				result+=("Already has been attended: "+" YES");
 			}else {
@@ -343,7 +357,7 @@ public class ShiftControler implements Serializable{
 	}
 	@SuppressWarnings("unchecked")
 	public void generateReportShiftUsers(String code,int option,int order) throws IOException {
-		File file = new File("data/ShiftUsers/"+code);
+		File file = new File("data/"+code+".txt");
 		boolean aux = false;
 		PrintWriter pw = new PrintWriter(file);
 		BufferedReader br = new BufferedReader(new FileReader(file));
@@ -471,10 +485,13 @@ public class ShiftControler implements Serializable{
 					Random rnd = new Random();
 					Random rndT = new Random();
 					LocalDateTime plus = time.getNowTime().plusDays(i);
-					Shift shift =new Shift(plus,null,'A',0,"---",false,true);
+					
 					for (int j = 0; j < cant[i]&&j<users.size(); j++) {
-						int k = rnd.nextInt()*(users.size()-1)+0;
-						int t = rndT.nextInt()*type.size()-1;
+						int k = rnd.nextInt((users.size()-1));
+						int t = rndT.nextInt(type.size()-1);
+						plus.plusSeconds(15);
+						plus.plusSeconds((long) (type.get(i).getDuration()*60));
+						Shift shift =new Shift(plus,null,'A',0,"A00",false,true);
 						if(j==0) {
 							shift.setType(type.get(t));
 						}else {
@@ -485,23 +502,27 @@ public class ShiftControler implements Serializable{
 						userShift.add(user);							
 					}
 				}
-			}
+			}else System.out.println("Please create first the users");
 			
 		}else System.out.println("Please create first the types of shifts");
 		
 	}
 	@SuppressWarnings("resource")
 	public void generateRamdonUsers(int n) throws IOException {
-		File file = new File("DocumentNumber.txt");
-		String name,lastName,street,phone,document,type = "";
+		File file = new File("data/DocumentNumber.txt");
+		String name="",lastName = "",street="",phone="",document="",type = "";
 		int d=0;
-		BufferedReader br = new BufferedReader(new FileReader(new File("UserName.txt")));
+		File fileN = new File("data/UserName.txt");
+		File fileL = new File("data/UserLastName.txt");
+		File fileA = new File("data/StreetAdrees.txt");
+		File fileNP = new File("data/NumberPhone.txt");
+		BufferedReader br = new BufferedReader(new FileReader(fileN));
 		String[] names = br.readLine().split(";");
-		br = new BufferedReader(new FileReader(new File("UserLastName.txt")));
+		br = new BufferedReader(new FileReader(fileL));
 		String[] lastNames = br.readLine().split(";");
-		br = new BufferedReader(new FileReader(new File("StreetAdrees.txt")));
+		br = new BufferedReader(new FileReader(fileA));
 		String[] streets = br.readLine().split(";");
-		br = new BufferedReader(new FileReader(new File("NumberPhone.txt")));
+		br = new BufferedReader(new FileReader(fileNP));
 		String[] phones = br.readLine().split(";");
 		br = new BufferedReader(new FileReader(file));
 		String[] documents = br.readLine().split(";");
@@ -512,9 +533,10 @@ public class ShiftControler implements Serializable{
 		Random rP = new Random();
 		Random rD = new Random();
 		Random t = new Random();
+		
 		if(documents.length>0) {
 			for (int i = 0; i < n && i<4000; i++) {
-				int t1 = t.nextInt()*3;
+				int t1 = t.nextInt(3);
 				switch(t1+1) {
 				case 1:
 					type = User.CC;
@@ -529,22 +551,26 @@ public class ShiftControler implements Serializable{
 					type = User.PS;
 					break;
 				}
-				d =rD.nextInt()*documents.length-1;
-				document = documents[d];
-				name = names[rN.nextInt()*(names.length-1)];
-				lastName = lastNames[rL.nextInt()*(lastNames.length-1)];
+				d =rD.nextInt(documents.length-1);
+				document = documents[d].trim();
+				name = names[rN.nextInt(names.length-1)].trim();
+				lastName = lastNames[rL.nextInt(lastNames.length-1)].trim();
 				if(r.nextBoolean()==true) {
-					street = streets[rS.nextInt()*(streets.length-1)];
+					street = streets[rS.nextInt(streets.length-1)].trim();
 				}else street = User.UNKNOWN;
 				if(r.nextBoolean()==true) {
-					phone = phones[rP.nextInt()*phones.length-1];
+					phone = phones[rP.nextInt(phones.length-1)].trim();
 				}else phone = User.UNKNOWN;
 				//registerUser(String name,String lastName,String documentType,String documentNumber,String locate,String numberPhone)
-				try {
-					registerUser(name, lastName, type, document, street, phone);
-				} catch (IdUserExistException | ValueIsEmptyException e) {
-					documents[d]="";
-				}
+				
+					try {
+						registerUser(name, lastName, type, document, street, phone);
+					} catch (IdUserExistException e) {
+						documents[d]="";
+					} catch (ValueIsEmptyException e) {
+						//NOTHING
+					}
+				
 				
 			}
 			file.delete();
@@ -562,7 +588,7 @@ public class ShiftControler implements Serializable{
 				
 			}
 			pw.close();
-		}
+		}else System.out.println("can't generate more users");
 		
 		br.close();
 		

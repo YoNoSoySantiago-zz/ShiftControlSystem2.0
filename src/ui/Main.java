@@ -9,7 +9,7 @@ import java.util.Scanner;
 public class Main {
 	private ShiftControler shiftControler = new ShiftControler();
 	public final static String NAME_DATA="data/data.ynss";
-	public static void main(String[]args) throws IdUserExistException, ValueIsEmptyException {
+	public static void main(String[]args) throws IdUserExistException, ValueIsEmptyException, IOException {
 		boolean continue1 = true;
 		System.out.println("=============================\nWELCOME\n=============================\n");
 		Main main = new Main();
@@ -49,14 +49,14 @@ public class Main {
 		System.out.println("Current shift: "+shiftControler.getShift()+"\n");
 		System.out.println("1. add user\n"+"2. add Type of shift\n"+"3. Assign shift\n"+"4. Advance shift\n"+"5. Show date and time\n"+"6. Change date and time\n"+"7. To generate...\n"+"0. Exit\n");
 	}
-	public boolean start(){
+	public boolean start() throws IOException{
 		@SuppressWarnings("resource")
 		Scanner s = new Scanner(System.in);
 		boolean continue1= true;
 		double time1 =0;
 		double time2 =0;
 		int optionAux=0;
-		int option = Integer.parseInt(s.nextLine().trim());
+		int option = Integer.parseInt(s.nextLine());
 		String name="",lastName="",documentNumber="",documentType="",locate="",numberPhone="",shiftType="";
 		try {
 			
@@ -252,6 +252,7 @@ public class Main {
 				case 2:
 					System.out.println("please type the code");
 					String code = s.nextLine();
+					System.out.println("-1. if you want that the report show in console\n"+"1. if you want that the report save in a file\n"+"0. if you want both to run");
 					option2 = Integer.parseInt(s.nextLine());
 					if(option2<-1||option2>1) {
 						option2 = 0;
@@ -274,9 +275,15 @@ public class Main {
 					shiftControler.generateRamdonUsers(cant);
 					break;
 				case 4:
-					System.out.println("Type how many shift you want generate");
+					System.out.println("Type how many days of shift you want generate");
 					int cantS = Integer.parseInt(s.nextLine());
-					shiftControler.generateRamdonUsers(cantS);
+					if(cantS<0)cantS*=-1;
+					int[] days = new int[cantS];
+					for (int i = 0; i < cantS; i++) {
+						System.out.println("Type hou many shift you want generate the day: "+(i+1));
+						days[i] = Integer.parseInt(s.nextLine());
+					}
+					shiftControler.generateRamdonShift(days);
 					break;
 				}
 				
@@ -302,9 +309,10 @@ public class Main {
 			System.out.println(e.getMessage());
 		} catch (TimeDateNoValid e) {
 			System.out.println(e.getMessage());
-		} catch (IOException e) {
+		}/* catch (IOException e) {
 			System.out.println("Please check the data folder");
-		}
+			System.out.println(e.getStackTrace());
+		}*/
 		
 		return continue1;
 	}

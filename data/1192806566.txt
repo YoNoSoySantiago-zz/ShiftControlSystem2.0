@@ -1,0 +1,3 @@
+A01 
+Already has been attended:  NO
+is into the room?:  YES
